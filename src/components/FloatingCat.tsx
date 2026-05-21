@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TIPS = [
@@ -17,27 +17,35 @@ export default function FloatingCat() {
   const [isWalking, setIsWalking] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [currentTip, setCurrentTip] = useState(0);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     // Trigger walk every ~25 seconds with some randomness
     const schedule = () => {
       const delay = 15000 + Math.random() * 20000;
-      setTimeout(() => {
+      const id = setTimeout(() => {
         setCurrentTip(Math.floor(Math.random() * TIPS.length));
         setIsWalking(true);
-        setTimeout(() => setIsWalking(false), 6000);
+        const walkEndId = setTimeout(() => setIsWalking(false), 6000);
+        timeoutsRef.current.push(walkEndId);
         schedule();
       }, delay);
+      timeoutsRef.current.push(id);
     };
     // First appearance after 8 seconds
     const initial = setTimeout(() => {
       setCurrentTip(0);
       setIsWalking(true);
-      setTimeout(() => setIsWalking(false), 6000);
+      const walkEndId = setTimeout(() => setIsWalking(false), 6000);
+      timeoutsRef.current.push(walkEndId);
       schedule();
     }, 8000);
+    timeoutsRef.current.push(initial);
 
-    return () => clearTimeout(initial);
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
   }, []);
 
   return (
